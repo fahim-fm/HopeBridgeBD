@@ -1,0 +1,64 @@
+/* Hero Slideshow */
+#heroCarousel .carousel-inner img {
+    max-height: 400px;   /* smaller height for better fit */
+    object-fit: cover;   /* cover entire slide nicely */
+    border-radius: 10px;
+}
+
+/* Carousel caption background */
+#heroCarousel .carousel-caption {
+    background: rgba(0, 0, 0, 0.4);  /* semi-transparent background */
+    padding: 15px;
+    border-radius: 10px;
+}
+
+/* Smaller caption font */
+#heroCarousel .carousel-caption h2 {
+    font-size: 1.8rem;
+}
+
+#heroCarousel .carousel-caption p {
+    font-size: 1rem;
+}
+
+/* Animate Donate Now Button */
+@keyframes popUp {
+    0% { transform: scale(0.8); opacity: 0.5; }
+    50% { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.donate-btn {
+    font-size: 1.8rem;
+    border-radius: 50px;
+    animation: popUp 1s ease-out 0s 1, pulse 2s infinite;
+}
+
+/* Optional pulse effect for continuous attention */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.btn-warning:hover {
+    transform: scale(1.15);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.35);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+footer a:hover {
+    color: #ffc107; /* golden color on hover */
+    text-decoration: none;
+}
+
+footer p, footer li {
+    font-size: 0.95rem;
+}
+
+footer .fab {
+    transition: transform 0.3s;
+}
+
+footer .fab:hover {
+    transform: scale(1.2);
+}
