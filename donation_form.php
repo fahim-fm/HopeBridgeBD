@@ -30,6 +30,8 @@ if(isset($_GET['id'])){
   <meta charset="UTF-8">
   <title><?php echo $edit ? "Edit" : "Add"; ?> Donation</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+   <link rel="icon" sizes="32x32" type="image/png" href="favicon.png">
+
 </head>
 <body>
 <div class="container py-4">

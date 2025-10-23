@@ -33,6 +33,8 @@ $donations = mysqli_query($conn, "
   <meta charset="UTF-8">
   <title>Volunteer Dashboard - <?php echo $name; ?></title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+   <link rel="icon" sizes="32x32" type="image/png" href="favicon.png">
+
   <style>
     .profile-img {
         width: 120px;

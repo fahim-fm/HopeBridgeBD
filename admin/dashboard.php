@@ -18,9 +18,11 @@ $volunteers_count = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS t
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Admin Dashboard - HopeBridge</title>
+  <title>Admin Dashboard - HopeBridgeBD</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="../assets/css/style.css" rel="stylesheet">
+     <link rel="icon" sizes="32x32" type="image/png" href="../favicon.png">
+
 </head>
 <body>
 

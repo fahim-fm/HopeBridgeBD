@@ -25,6 +25,8 @@ $donors = mysqli_query($conn, "SELECT * FROM users WHERE role='donor' ORDER BY c
   <meta charset="UTF-8">
   <title>Manage Donors - Admin</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+     <link rel="icon" sizes="32x32" type="image/png" href="../favicon.png">
+
   <link href="../assets/css/style.css" rel="stylesheet">
 </head>
 <body>

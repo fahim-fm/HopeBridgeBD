@@ -3,8 +3,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Register - HopeBridge</title>
+  <title>Register - HopeBridgeBD</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+   <link rel="icon" sizes="32x32" type="image/png" href="favicon.png">
+
 </head>
 <body class="bg-light">
 
