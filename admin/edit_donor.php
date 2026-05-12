@@ -2,90 +2,128 @@
 session_start();
 include '../db.php';
 
-// Access control: only logged-in admin
-if(!isset($_SESSION['admin_id'])){
-    header("Location: login.php");
-    exit;
+if (!isset($_SESSION['admin_id'])) {
+  header("Location: login.php");
+  exit;
+}
+if (!isset($_GET['id'])) {
+  header("Location: manage_donors.php");
+  exit;
 }
 
-if(!isset($_GET['id'])){
+$id = (int) $_GET['id'];
+$res = mysqli_prepare($conn, "SELECT * FROM users WHERE id = ? AND role = 'donor' LIMIT 1");
+mysqli_stmt_bind_param($res, 'i', $id);
+mysqli_stmt_execute($res);
+$donor = mysqli_fetch_assoc(mysqli_stmt_get_result($res));
+mysqli_stmt_close($res);
+
+if (!$donor) {
+  header("Location: manage_donors.php");
+  exit;
+}
+
+$error = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  $name = trim($_POST['name'] ?? '');
+  $email = trim($_POST['email'] ?? '');
+  $phone = trim($_POST['phone'] ?? '');
+  $area = trim($_POST['area'] ?? '');
+
+  if (!empty($_POST['password'])) {
+    $hashed = password_hash($_POST['password'], PASSWORD_DEFAULT);
+    $stmt = mysqli_prepare(
+      $conn,
+      "UPDATE users SET name=?,email=?,phone=?,area=?,password=? WHERE id=?"
+    );
+    mysqli_stmt_bind_param($stmt, 'sssssi', $name, $email, $phone, $area, $hashed, $id);
+  } else {
+    $stmt = mysqli_prepare(
+      $conn,
+      "UPDATE users SET name=?,email=?,phone=?,area=? WHERE id=?"
+    );
+    mysqli_stmt_bind_param($stmt, 'ssssi', $name, $email, $phone, $area, $id);
+  }
+
+  if (mysqli_stmt_execute($stmt)) {
+    mysqli_stmt_close($stmt);
     header("Location: manage_donors.php");
     exit;
-}
-
-$id = $_GET['id'];
-
-// Fetch donor details
-$res = mysqli_query($conn, "SELECT * FROM users WHERE id='$id' AND role='donor'");
-$donor = mysqli_fetch_assoc($res);
-if(!$donor){
-    echo "<h3 class='text-center mt-5'>Donor not found!</h3>";
-    exit;
-}
-
-// Handle form submission
-if($_SERVER['REQUEST_METHOD'] == 'POST'){
-    $name = $_POST['name'];
-    $email = $_POST['email'];
-    $phone = $_POST['phone'];
-    $area = $_POST['area'];
-
-    // If password is provided, hash it
-    if(!empty($_POST['password'])){
-        $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
-        $sql = "UPDATE users SET name='$name', email='$email', phone='$phone', area='$area', password='$password' WHERE id='$id'";
-    } else {
-        $sql = "UPDATE users SET name='$name', email='$email', phone='$phone', area='$area' WHERE id='$id'";
-    }
-
-    if(mysqli_query($conn, $sql)){
-        header("Location: manage_donors.php");
-        exit;
-    } else {
-        $error = "Error updating donor: ".mysqli_error($conn);
-    }
+  } else {
+    $error = "Error updating donor.";
+  }
+  mysqli_stmt_close($stmt);
 }
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
-  <title>Edit Donor - Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Donor — Admin</title>
+  <link rel="icon" type="image/png" href="../favicon.png">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-     <link rel="icon" sizes="32x32" type="image/png" href="../favicon.png">
-
+  <link href="../assets/css/styles.css" rel="stylesheet">
 </head>
+
 <body>
 
-<div class="container py-5">
-  <h3>Edit Donor</h3>
-  <?php if(isset($error)) echo "<div class='alert alert-danger'>$error</div>"; ?>
-  <form method="post">
-    <div class="mb-3">
-      <label>Name</label>
-      <input type="text" name="name" class="form-control" value="<?php echo htmlspecialchars($donor['name']); ?>" required>
-    </div>
-    <div class="mb-3">
-      <label>Email</label>
-      <input type="email" name="email" class="form-control" value="<?php echo htmlspecialchars($donor['email']); ?>" required>
-    </div>
-    <div class="mb-3">
-      <label>Phone</label>
-      <input type="text" name="phone" class="form-control" value="<?php echo htmlspecialchars($donor['phone']); ?>" required>
-    </div>
-    <div class="mb-3">
-      <label>Area</label>
-      <input type="text" name="area" class="form-control" value="<?php echo htmlspecialchars($donor['area']); ?>" required>
-    </div>
-    <div class="mb-3">
-      <label>Password (leave blank to keep current)</label>
-      <input type="password" name="password" class="form-control">
-    </div>
-    <button type="submit" class="btn btn-success">Update Donor</button>
-    <a href="manage_donors.php" class="btn btn-secondary">Cancel</a>
-  </form>
-</div>
+  <?php include '_navbar.php'; ?>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <div class="container py-5">
+    <div class="row justify-content-center">
+      <div class="col-11 col-md-7 col-lg-5">
+        <div class="form-card">
+
+          <div class="d-flex align-items-center gap-2 mb-4">
+            <a href="manage_donors.php" class="text-muted text-decoration-none"><i class="fas fa-arrow-left"></i></a>
+            <h4 class="fw-bold mb-0">Edit Donor</h4>
+          </div>
+
+          <?php if ($error): ?>
+            <div class="alert alert-danger py-2"><?php echo htmlspecialchars($error); ?></div>
+          <?php endif; ?>
+
+          <form method="post" novalidate>
+            <div class="mb-3">
+              <label class="form-label">Name</label>
+              <input type="text" name="name" class="form-control" required
+                value="<?php echo htmlspecialchars($donor['name']); ?>">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Email</label>
+              <input type="email" name="email" class="form-control" required
+                value="<?php echo htmlspecialchars($donor['email']); ?>">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Phone</label>
+              <input type="tel" name="phone" class="form-control" required
+                value="<?php echo htmlspecialchars($donor['phone']); ?>">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Area</label>
+              <input type="text" name="area" class="form-control" required
+                value="<?php echo htmlspecialchars($donor['area']); ?>">
+            </div>
+            <div class="mb-4">
+              <label class="form-label">New Password <small class="text-muted">(leave blank to keep
+                  current)</small></label>
+              <input type="password" name="password" class="form-control" minlength="6">
+            </div>
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-success px-4">Update Donor</button>
+              <a href="manage_donors.php" class="btn btn-outline-secondary px-4">Cancel</a>
+            </div>
+          </form>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>

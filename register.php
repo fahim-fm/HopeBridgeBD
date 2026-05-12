@@ -1,105 +1,128 @@
-<?php include 'db.php'; ?>
+<?php
+session_start();
+include 'db.php';
+
+if (isset($_SESSION['user_id'])) {
+  header("Location: donor_dashboard.php");
+  exit;
+}
+
+$success = $error = '';
+$formData = ['name' => '', 'email' => '', 'phone' => '', 'area' => ''];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  $name = trim($_POST['name'] ?? '');
+  $email = trim($_POST['email'] ?? '');
+  $password = $_POST['password'] ?? '';
+  $phone = trim($_POST['phone'] ?? '');
+  $area = trim($_POST['area'] ?? '');
+
+  $formData = compact('name', 'email', 'phone', 'area');
+
+  // Check duplicate email
+  $chk = mysqli_prepare($conn, "SELECT id FROM users WHERE email = ? LIMIT 1");
+  mysqli_stmt_bind_param($chk, 's', $email);
+  mysqli_stmt_execute($chk);
+  mysqli_stmt_store_result($chk);
+
+  if (mysqli_stmt_num_rows($chk) > 0) {
+    $error = "This email is already registered. <a href='login.php'>Login instead?</a>";
+  } else {
+    $hashed = password_hash($password, PASSWORD_DEFAULT);
+    $ins = mysqli_prepare(
+      $conn,
+      "INSERT INTO users (name,email,password,phone,area,role) VALUES (?,?,?,?,?,'donor')"
+    );
+    mysqli_stmt_bind_param($ins, 'sssss', $name, $email, $hashed, $phone, $area);
+    if (mysqli_stmt_execute($ins)) {
+      $success = "Registration successful! <a href='login.php'>Login now →</a>";
+      $formData = ['name' => '', 'email' => '', 'phone' => '', 'area' => ''];
+    } else {
+      $error = "Something went wrong. Please try again.";
+    }
+    mysqli_stmt_close($ins);
+  }
+  mysqli_stmt_close($chk);
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
-  <title>Register - HopeBridgeBD</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register — HopeBridgeBD</title>
+  <link rel="icon" type="image/png" href="favicon.png">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="icon" sizes="32x32" type="image/png" href="favicon.png">
-
-  <style>
-    body {
-      background: #f3f5f7;
-      font-family: "Segoe UI", sans-serif;
-    }
-    .register-card {
-      border-radius: 12px;
-      padding: 35px;
-      background: #fff;
-    }
-    .brand-title {
-      font-size: 26px;
-      font-weight: 600;
-    }
-    .footer-links {
-      font-size: 14px;
-    }
-  </style>
+  <link href="assets/css/styles.css" rel="stylesheet">
 </head>
-<body>
 
-<div class="container d-flex justify-content-center align-items-center" style="height: 100vh;">
-  
-  <div class="col-md-5">
-    <div class="register-card shadow-sm">
+<body class="d-flex align-items-center min-vh-100 py-4">
 
-      <div class="text-center mb-4">
-        <img src="assets/img/logo.png" alt="Logo"  width="80">
-        <h3 class="brand-title text-success mt-2">Donor Registration</h3>
-        <p class="text-muted">Create your donor account</p>
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-11 col-sm-9 col-md-7 col-lg-5">
+        <div class="auth-card">
+
+          <div class="text-center mb-4">
+            <a href="index.php">
+              <img src="assets/img/logo.png" alt="HopeBridgeBD" width="80" loading="lazy">
+            </a>
+            <h3 class="fw-semibold text-success mt-2" style="font-size:1.5rem">Donor Registration</h3>
+            <p class="text-muted small">Create your free donor account</p>
+          </div>
+
+          <?php if ($error):
+            echo "<div class='alert alert-danger py-2'>$error</div>"; endif; ?>
+          <?php if ($success):
+            echo "<div class='alert alert-success py-2'>$success</div>"; endif; ?>
+
+          <form method="post" novalidate>
+
+            <div class="mb-3">
+              <label class="form-label" for="name">Full Name</label>
+              <input type="text" id="name" name="name" class="form-control" placeholder="Enter your full name" required
+                value="<?php echo htmlspecialchars($formData['name']); ?>">
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label" for="email">Email Address</label>
+              <input type="email" id="email" name="email" class="form-control" placeholder="Enter your email" required
+                value="<?php echo htmlspecialchars($formData['email']); ?>">
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label" for="password">Password</label>
+              <input type="password" id="password" name="password" class="form-control"
+                placeholder="Create a strong password" required minlength="6">
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label" for="phone">Phone Number</label>
+              <input type="tel" id="phone" name="phone" class="form-control" placeholder="e.g., 017xxxxxxxx" required
+                value="<?php echo htmlspecialchars($formData['phone']); ?>">
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label" for="area">Area</label>
+              <input type="text" id="area" name="area" class="form-control" placeholder="Feni / Cumilla / Others"
+                required value="<?php echo htmlspecialchars($formData['area']); ?>">
+            </div>
+
+            <button type="submit" class="btn btn-success w-100 py-2">Create Account</button>
+          </form>
+
+          <div class="text-center mt-3" style="font-size:.9rem">
+            <p class="mb-1">Already have an account? <a href="login.php">Login</a></p>
+            <a href="index.php" class="text-decoration-none text-muted">← Back to Home</a>
+          </div>
+
+        </div>
       </div>
-
-      <?php
-      if($_SERVER['REQUEST_METHOD'] == 'POST'){
-          $name = $_POST['name'];
-          $email = $_POST['email'];
-          $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
-          $phone = $_POST['phone'];
-          $area = $_POST['area'];
-
-          $check = mysqli_query($conn, "SELECT * FROM users WHERE email='$email'");
-          if(mysqli_num_rows($check) > 0){
-              echo "<div class='alert alert-danger text-center'>Email already exists</div>";
-          } else {
-              $sql = "INSERT INTO users(name,email,password,phone,area,role) 
-                      VALUES('$name','$email','$password','$phone','$area','donor')";
-              if(mysqli_query($conn, $sql)){
-                  echo "<div class='alert alert-success text-center'>Registered successfully! <a href='login.php'>Login</a></div>";
-              } else {
-                  echo "<div class='alert alert-danger text-center'>Error: ".mysqli_error($conn)."</div>";
-              }
-          }
-      }
-      ?>
-
-      <form method="post">
-
-        <div class="mb-3">
-          <label class="form-label">Full Name</label>
-          <input type="text" name="name" class="form-control" placeholder="Enter your full name" required>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label">Email Address</label>
-          <input type="email" name="email" class="form-control" placeholder="Enter your email" required>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label">Password</label>
-          <input type="password" name="password" class="form-control" placeholder="Create a password" required>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label">Phone Number</label>
-          <input type="text" name="phone" class="form-control" placeholder="e.g., 017xxxxxxxx" required>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label">Area</label>
-          <input type="text" name="area" class="form-control" placeholder="Feni / Cumilla / Others" required>
-        </div>
-
-        <button type="submit" class="btn btn-success w-100 py-2">Register</button>
-      </form>
-
-      <div class="text-center mt-3 footer-links">
-        <p>Already have an account? <a href="login.php">Login</a></p>
-      </div>
-
     </div>
   </div>
 
-</div>
-
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>

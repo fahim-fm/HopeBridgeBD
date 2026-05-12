@@ -2,109 +2,128 @@
 session_start();
 include '../db.php';
 
-// Access control: only logged-in admin
-if(!isset($_SESSION['admin_id'])){
-    header("Location: login.php");
-    exit;
+if (!isset($_SESSION['admin_id'])) {
+  header("Location: login.php");
+  exit;
 }
 
-// Handle deletion
-if(isset($_GET['delete'])){
-    $del_id = $_GET['delete'];
-    mysqli_query($conn, "DELETE FROM donations WHERE id='$del_id'");
-    header("Location: manage_donations.php");
-    exit;
+$allowedStatuses = ['Available', 'Claimed', 'Delivered'];
+
+// Delete
+if (isset($_GET['delete'])) {
+  $del = (int) $_GET['delete'];
+  $stmt = mysqli_prepare($conn, "DELETE FROM donations WHERE id = ?");
+  mysqli_stmt_bind_param($stmt, 'i', $del);
+  mysqli_stmt_execute($stmt);
+  mysqli_stmt_close($stmt);
+  header("Location: manage_donations.php");
+  exit;
 }
 
-// Handle status update
-if(isset($_GET['status']) && isset($_GET['id'])){
-    $id = $_GET['id'];
-    $status = $_GET['status'];
-    mysqli_query($conn, "UPDATE donations SET status='$status' WHERE id='$id'");
-    header("Location: manage_donations.php");
-    exit;
+// Status update
+if (isset($_GET['status'], $_GET['id']) && in_array($_GET['status'], $allowedStatuses)) {
+  $id = (int) $_GET['id'];
+  $status = $_GET['status'];
+  $stmt = mysqli_prepare($conn, "UPDATE donations SET status = ? WHERE id = ?");
+  mysqli_stmt_bind_param($stmt, 'si', $status, $id);
+  mysqli_stmt_execute($stmt);
+  mysqli_stmt_close($stmt);
+  header("Location: manage_donations.php");
+  exit;
 }
 
-// Fetch all donations with donor info
-$donations = mysqli_query($conn, "SELECT d.*, u.name AS donor_name, u.email AS donor_email FROM donations d JOIN users u ON d.donor_id=u.id ORDER BY d.created_at DESC");
+$donations = mysqli_query(
+  $conn,
+  "SELECT d.*, u.name AS donor_name, u.email AS donor_email
+     FROM donations d JOIN users u ON d.donor_id = u.id
+     ORDER BY d.created_at DESC"
+);
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
-  <title>Manage Donations - Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Donations — Admin</title>
+  <link rel="icon" type="image/png" href="../favicon.png">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-     <link rel="icon" sizes="32x32" type="image/png" href="../favicon.png">
-
-  <link href="../assets/css/style.css" rel="stylesheet">
+  <link href="../assets/css/styles.css" rel="stylesheet">
 </head>
+
 <body>
 
-<!-- Navbar -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-success">
-  <div class="container">
-    <a class="navbar-brand fw-bold" href="dashboard.php">Admin Panel</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navMenu">
-      <ul class="navbar-nav ms-auto">
-        <li class="nav-item"><a class="nav-link" href="manage_donors.php">Donors</a></li>
-        <li class="nav-item"><a class="nav-link" href="manage_donations.php">Donations</a></li>
-        <li class="nav-item"><a class="nav-link" href="manage_volunteers.php">Volunteers</a></li>
-        <li class="nav-item"><a class="nav-link" href="admin_messages.php">Messages</a></li>
-         <li class="nav-item"><a class="nav-link" href="reports.php">Reports</a></li>
-        <li class="nav-item"><a class="nav-link btn btn-warning text-dark ms-2" href="../index.php">Logout</a></li>
-      </ul>
+  <?php include '_navbar.php'; ?>
+
+  <div class="container py-5">
+    <h3 class="fw-bold mb-4">Manage Donations</h3>
+
+    <div class="admin-table-wrap">
+      <table class="table table-bordered table-striped table-hover align-middle">
+        <thead class="table-warning">
+          <tr>
+            <th>#</th>
+            <th>Title</th>
+            <th>Category</th>
+            <th>Donor</th>
+            <th>Area</th>
+            <th>Status</th>
+            <th>Image</th>
+            <th>Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php $i = 1;
+          while ($d = mysqli_fetch_assoc($donations)):
+            $sc = match ($d['status']) {
+              'Claimed' => 'badge-claimed',
+              'Delivered' => 'badge-delivered',
+              default => 'badge-available',
+            };
+            ?>
+            <tr>
+              <td class="small text-muted"><?php echo $i++; ?></td>
+              <td class="fw-semibold"><?php echo htmlspecialchars($d['title']); ?></td>
+              <td><?php echo htmlspecialchars($d['category']); ?></td>
+              <td>
+                <?php echo htmlspecialchars($d['donor_name']); ?>
+                <br><small class="text-muted"><?php echo htmlspecialchars($d['donor_email']); ?></small>
+              </td>
+              <td><?php echo htmlspecialchars($d['area']); ?></td>
+              <td><span class="status-badge <?php echo $sc; ?>"><?php echo $d['status']; ?></span></td>
+              <td>
+                <?php if ($d['image']): ?>
+                  <img src="../uploads/<?php echo htmlspecialchars($d['image']); ?>" width="70" class="rounded">
+                <?php else: ?>
+                  <span class="text-muted small">—</span>
+                <?php endif; ?>
+              </td>
+              <td class="small text-muted"><?php echo date('d M Y', strtotime($d['created_at'])); ?></td>
+              <td>
+                <div class="d-flex flex-wrap gap-1">
+                  <a href="manage_donations.php?id=<?php echo (int) $d['id']; ?>&status=Available"
+                    class="btn btn-sm btn-success">Available</a>
+                  <a href="manage_donations.php?id=<?php echo (int) $d['id']; ?>&status=Claimed"
+                    class="btn btn-sm btn-warning text-dark">Claimed</a>
+                  <a href="manage_donations.php?id=<?php echo (int) $d['id']; ?>&status=Delivered"
+                    class="btn btn-sm btn-primary">Delivered</a>
+                  <a href="manage_donations.php?delete=<?php echo (int) $d['id']; ?>" class="btn btn-sm btn-danger"
+                    onclick="return confirm('Delete this donation?')">Delete</a>
+                </div>
+              </td>
+            </tr>
+          <?php endwhile; ?>
+        </tbody>
+      </table>
     </div>
   </div>
-</nav>
 
+  <footer class="bg-dark text-white text-center py-3 mt-5">
+    <p class="mb-0 small text-white-50">&copy; <?php echo date('Y'); ?> HopeBridgeBD | Admin</p>
+  </footer>
 
-<div class="container py-5">
-  <h3 class="mb-4">Manage Donations</h3>
-
-  <table class="table table-bordered table-striped">
-    <thead class="table-warning">
-      <tr>
-        <th>ID</th>
-        <th>Title</th>
-        <th>Category</th>
-        <th>Donor</th>
-        <th>Area</th>
-        <th>Status</th>
-        <th>Created</th>
-        <th>Image</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      <?php while($d = mysqli_fetch_assoc($donations)){ ?>
-      <tr>
-        <td><?php echo $d['id']; ?></td>
-        <td><?php echo htmlspecialchars($d['title']); ?></td>
-        <td><?php echo $d['category']; ?></td>
-        <td><?php echo htmlspecialchars($d['donor_name']); ?> <br> <small><?php echo htmlspecialchars($d['donor_email']); ?></small></td>
-        <td><?php echo htmlspecialchars($d['area']); ?></td>
-        <td><?php echo $d['status']; ?></td>
-        <td><?php echo $d['created_at']; ?></td>
-        <td><img src="../uploads/<?php echo $d['image']; ?>" alt="Donation Image" width="100"></td>
-        <td>
-          <a href="manage_donations.php?id=<?php echo $d['id']; ?>&status=Available" class="btn btn-sm btn-success">Available</a>
-          <a href="manage_donations.php?id=<?php echo $d['id']; ?>&status=Claimed" class="btn btn-sm btn-warning text-dark">Claimed</a>
-          <a href="manage_donations.php?id=<?php echo $d['id']; ?>&status=Delivered" class="btn btn-sm btn-primary">Delivered</a>
-          <a href="manage_donations.php?delete=<?php echo $d['id']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('Delete this donation?')">Delete</a>
-        </td>
-      </tr>
-      <?php } ?>
-    </tbody>
-  </table>
-</div>
-
-<footer class="bg-dark text-white text-center py-3 mt-5">
-  <p>&copy; 2025 HopeBridge | Admin Panel</p>
-</footer>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>
